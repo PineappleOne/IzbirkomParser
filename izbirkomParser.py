@@ -1,15 +1,15 @@
 #!/usr/bin/python
+import argparse
 import requests
 import json
 import sys
+import os
 import time
 import csv
 from bs4 import BeautifulSoup
 
 
 url_base = 'http://www.st-petersburg.vybory.izbirkom.ru/region/st-petersburg'
-
-countLimitParse = -1
 
 #главная коллекция из которой генерируется файл
 main_collection=[]
@@ -62,7 +62,7 @@ def getMainTreeRoot(countLimit):
         main_children = {'id': child_main['id'], 'name': child_main['text'], 'parent': header_element['name']}
         print(f'Парсинг сотрудников :{main_children["name"]}')
         getAndParseHtml(main_children)
-
+        
         paramsTwo = (
         ('action', 'ikTree'),
         ('region', '78'),
@@ -82,7 +82,8 @@ def getMainTreeRoot(countLimit):
         if response.ok:
             decoded_json_2tree = json.loads(response.text)
             for child_tree2 in decoded_json_2tree:
-                children_tree2 ={'name': child_tree2['text'],'parent': main_children['name'], 'id': main_children['id']}
+            
+                children_tree2 ={'name': child_tree2['text'],'parent': main_children['name'], 'id': child_tree2['id']}
                 #Парсим HTML для нисших уровнях дерева
                 print(f'Парсинг сотрудников :{children_tree2["name"]}')
                 getAndParseHtml(children_tree2)
@@ -91,20 +92,51 @@ def getMainTreeRoot(countLimit):
             sys.exit(f'-1 Error request can be not executes status code: {response.status_code}')
 
 #Создаем ТСВ файл
-def createTsv(collection):
-    with open('output.tsv','wt') as out_file:
+def createTsv(collection,path,fileName):
+
+    if not path:
+        filePath=fileName
+    else:
+        filePath=f'{path}/{fileName}'
+
+        if not os.path.exists(filePath):
+            os.makedirs(path)
+
+    with open(f'{filePath}.tsv','w', newline='') as out_file:
         tsv_writer = csv.DictWriter(out_file,fieldnames = ['name', 'parent','fio','post','whoRec'],delimiter='\t')
         tsv_writer.writeheader()
         tsv_writer.writerows(collection)
         
         
 if __name__ =="__main__":
+
+    #Лимит парса пунктов главного дерева (ТИК)
+    countLimitParse = -1
+    path=''
+    fileName='output'
+
+    parser = argparse.ArgumentParser(description= "Parser SPB izbirkom")
+    parser.add_argument('-l','--limit', action='store', dest='limit', help='limit max parse TIKs')
+    parser.add_argument('-p','--path', action='store', dest='path', help='path output file')
+    parser.add_argument('-f','--file', action='store', dest='fileName', help='file name')
     
+    args = parser.parse_args()
+ 
+    if args.limit!= None:
+        countLimitParse = int(args.limit)
+    
+    if args.path!=None:
+        path = args.path
+    
+    if args.fileName!= None:
+        fileName= args.fileName
+
     print('Старт парсера')
     getMainTreeRoot(countLimitParse)
     
     print('Генерация файла')
-    createTsv(main_collection)
+    print(f'{path}/{fileName}.tsv')
+    createTsv(main_collection,path,fileName)
     
 sys.exit('Завершено успешно.')
 
