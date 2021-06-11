@@ -19,7 +19,7 @@ def getAndParseHtml(child,counterFio):
     ('vrn', child['id']))
 
     #что бы уменьшить шанс бана спим по 0.5 секунд а каждую 10 итерацию спим 10
-    time.sleep( 0.5 if counterFio % 10 != 0 else 3)
+    #time.sleep( 0.5 if counterFio % 10 != 0 else 3)
     counterFio+=1
 
     response = requests.get(url_base,params=params, verify=False)
@@ -85,7 +85,7 @@ for child in children_elements:
     ('vrn', child['id']),
     ('onlyChildren', 'true'),
     ('id', child['id']))
-   
+    counter +=1
     #получаем дочернее дерево для ТИКов
     response = requests.get(url_base, params=paramsTwo, verify=False)
 
